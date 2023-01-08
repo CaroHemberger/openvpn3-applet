@@ -1,5 +1,31 @@
 #!/bin/bash
 
+################################################################################
+# Help                                                                         #
+################################################################################
+function displayHelp()
+{
+   # Display Help
+   echo "Helper to display openvpn3 connection state."
+   echo
+   echo "Syntax: ./openvpn3applet.sh [-g|h|v|V]"
+   echo "options:"
+   echo "-s [seconds]     Time between state refresh in seconds, default: 10"
+   echo "-h     Print this Help."
+   echo
+}
+
+sleepTime=10
+
+while getopts s:h flag
+do
+    case "${flag}" in
+        s) sleepTime=${OPTARG};;
+        h) displayHelp
+		   exit;;
+    esac
+done
+
 # create a FIFO file, used to manage the I/O redirection from shell
 PIPE=$(mktemp -u --tmpdir ${0##*/}.XXXXXXXX)
 mkfifo $PIPE
@@ -54,7 +80,7 @@ yad --notification                  \
 while true
 do 
     update_state
-    sleep 10
+    sleep $sleepTime
 done
     
 
