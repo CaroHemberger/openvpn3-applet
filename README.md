@@ -1,6 +1,6 @@
 # openvpn3-applet
 
-Prerequestites:
+Prerequisites:
 * yad (https://github.com/v1cont/yad)
 
 
