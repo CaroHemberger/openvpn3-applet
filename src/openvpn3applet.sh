@@ -48,6 +48,14 @@ function on_click() {
 }
 export -f on_click
 
+function disconnect() {
+    sessionPath=$(openvpn3 sessions-list | grep Path | awk ' { print $2 } ')
+    echo "path:"  $sessionPath
+    openvpn3 session-manage --disconnect --session-path $sessionPath
+    update_state
+}
+export -f disconnect
+
 function update_state() {
 	exec 3<> $PIPE
 	
@@ -75,7 +83,7 @@ yad --notification                  \
     --image="network-error"              \
     --text="Notification tooltip"   \
     --command="bash -c on_click" \
-    --menu="connect!bash -c update_state|disconnect!bash -c 'update_state'" <&3 &
+    --menu="List sessions!./list-sessions.sh|Disconnect!bash -c 'disconnect'" <&3 &
     
 while true
 do 
