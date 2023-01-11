@@ -64,10 +64,12 @@ function update_state() {
 		then
 			echo "no sessions"
 			echo "icon:$bashSource/icons/circle-red.png" >&3
+			echo "tooltip:Not connected" >&3
 		elif [[ $line = *"Client connected" ]]
 		then
 			echo "sessions found!"
 			echo "icon:$bashSource/icons/circle-green.png" >&3
+			echo "tooltip:Connected to VPN" >&3
 		fi
 	done <<< "$output"
 	
