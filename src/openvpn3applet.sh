@@ -43,32 +43,31 @@ trap on_exit EXIT
 
 # add handler for tray icon left click
 function on_click() {
-    echo "clicked"
-    update_state
+    update_state $1
 }
 export -f on_click
 
 function disconnect() {
     sessionPath=$(openvpn3 sessions-list | grep Path | awk ' { print $2 } ')
-    echo "path:"  $sessionPath
     openvpn3 session-manage --disconnect --session-path $sessionPath
-    update_state
+    update_state $1
 }
 export -f disconnect
 
 function update_state() {
 	exec 3<> $PIPE
+	bashSource=$1
 	
 	output=$(openvpn3 sessions-list)
 	while IFS= read -r line; do
 		if [[ $line = "No sessions available" ]]
 		then
 			echo "no sessions"
-			echo "icon:${BASH_SOURCE%/*}/icons/circle-red.png" >&3
+			echo "icon:$bashSource/icons/circle-red.png" >&3
 		elif [[ $line = *"Client connected" ]]
 		then
 			echo "sessions found!"
-			echo "icon:${BASH_SOURCE%/*}/icons/circle-green.png" >&3
+			echo "icon:$bashSource/icons/circle-green.png" >&3
 		fi
 	done <<< "$output"
 	
@@ -82,12 +81,12 @@ yad --notification                  \
     --listen                        \
     --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
     --text="openvpn3-applet"        \
-    --command="bash -c on_click"    \
-    --menu="List sessions!./list-sessions.sh|Disconnect!bash -c 'disconnect'" <&3 &
+    --command="bash -c 'on_click ${BASH_SOURCE%/*}'"   \
+    --menu="List sessions!${BASH_SOURCE%/*}/list-sessions.sh|Disconnect!bash -c 'disconnect ${BASH_SOURCE%/*}'" <&3 &
     
 while true
 do 
-    update_state
+    update_state ${BASH_SOURCE%/*}
     sleep $sleepTime
 done
     
