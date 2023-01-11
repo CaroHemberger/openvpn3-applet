@@ -64,11 +64,11 @@ function update_state() {
 		if [[ $line = "No sessions available" ]]
 		then
 			echo "no sessions"
-			echo "icon:network-error" >&3
+			echo "icon:${BASH_SOURCE%/*}/icons/circle-red.png" >&3
 		elif [[ $line = *"Client connected" ]]
 		then
 			echo "sessions found!"
-			echo "icon:data-success" >&3
+			echo "icon:${BASH_SOURCE%/*}/icons/circle-green.png" >&3
 		fi
 	done <<< "$output"
 	
@@ -80,9 +80,9 @@ export PIPE
 # create the notification icon
 yad --notification                  \
     --listen                        \
-    --image="network-error"              \
-    --text="Notification tooltip"   \
-    --command="bash -c on_click" \
+    --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
+    --text="openvpn3-applet"        \
+    --command="bash -c on_click"    \
     --menu="List sessions!./list-sessions.sh|Disconnect!bash -c 'disconnect'" <&3 &
     
 while true
