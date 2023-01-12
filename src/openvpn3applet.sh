@@ -54,6 +54,12 @@ function disconnect() {
 }
 export -f disconnect
 
+function connect() {
+    openvpn3 session-start --config .openvpn/rapunzel_caroline_hemberger@nesto.openvpn.com.ovpn
+    update_state $1
+}
+export -f connect
+
 function update_state() {
 	exec 3<> $PIPE
 	bashSource=$1
@@ -84,7 +90,7 @@ yad --notification                  \
     --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
     --text="openvpn3-applet"        \
     --command="bash -c 'on_click ${BASH_SOURCE%/*}'"   \
-    --menu="List sessions!${BASH_SOURCE%/*}/list-sessions.sh|Disconnect!bash -c 'disconnect ${BASH_SOURCE%/*}'" <&3 &
+    --menu="List sessions!${BASH_SOURCE%/*}/list-sessions.sh|Connect!bash -c 'connect ${BASH_SOURCE%/*}'|Disconnect!bash -c 'disconnect ${BASH_SOURCE%/*}'" <&3 &
     
 while true
 do 
