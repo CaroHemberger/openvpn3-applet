@@ -35,6 +35,7 @@ exec 3<> $PIPE
 
 # add handler to manage process shutdown
 function on_exit() {
+	exec 3<> $PIPE
 	echo "quitting.."
     echo "quit" >&3
     rm -f $PIPE
@@ -48,6 +49,8 @@ function on_click() {
 export -f on_click
 
 function disconnect() {
+	exec 3<> $PIPE
+	echo "icon:$1/icons/circle-lightblue.png" >&3
     sessionPath=$(openvpn3 sessions-list | grep Path | awk ' { print $2 } ')
     openvpn3 session-manage --disconnect --session-path $sessionPath
     update_state $1
@@ -55,7 +58,10 @@ function disconnect() {
 export -f disconnect
 
 function connect() {
-    openvpn3 session-start --config .openvpn/rapunzel_caroline_hemberger@nesto.openvpn.com.ovpn
+	exec 3<> $PIPE
+	echo "icon:$1/icons/circle-lightblue.png" >&3
+	configfile=$(yad --file)
+    openvpn3 session-start --config $configfile
     update_state $1
 }
 export -f connect
@@ -90,10 +96,11 @@ yad --notification                  \
     --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
     --text="openvpn3-applet"        \
     --command="bash -c 'on_click ${BASH_SOURCE%/*}'"   \
-    --menu="List sessions!${BASH_SOURCE%/*}/list-sessions.sh|Connect!bash -c 'connect ${BASH_SOURCE%/*}'|Disconnect!bash -c 'disconnect ${BASH_SOURCE%/*}'" <&3 &
+    --menu="List sessions!${BASH_SOURCE%/*}/list-sessions.sh|Connect!bash -c 'connect ${BASH_SOURCE%/*}'|Disconnect!bash -c 'disconnect ${BASH_SOURCE%/*}'|Exit!exit 0" <&3 & notifpid=$!
     
 while true
 do 
+echo "notify: " $notifpid
     update_state ${BASH_SOURCE%/*}
     sleep $sleepTime
 done
