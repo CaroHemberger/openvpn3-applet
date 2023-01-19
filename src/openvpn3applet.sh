@@ -15,6 +15,8 @@ function displayHelp()
    echo
 }
 
+CONFIG_FILE_PATH=~/.openvpn-applet/config
+
 sleepTime=10
 
 while getopts s:h flag
@@ -25,6 +27,20 @@ do
 		   exit;;
     esac
 done
+
+# check if there is a saved vpn config file, if not, ask for one and save it
+if [ -f "$CONFIG_FILE_PATH" ]
+then
+	source $CONFIG_FILE_PATH
+fi
+
+if [[ -z $CONFIG_PATH ]]
+then
+	configfile=$(yad --file)
+	echo "CONFIG_PATH="$configfile > $CONFIG_FILE_PATH
+	CONFIG_PATH=$configfile
+fi
+
 
 # create a FIFO file, used to manage the I/O redirection from shell
 PIPE=$(mktemp -u --tmpdir ${0##*/}.XXXXXXXX)
@@ -62,8 +78,7 @@ export -f disconnect
 function connect() {
 	exec 3<> $PIPE
 	echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
-	configfile=$(yad --file)
-    openvpn3 session-start --config $configfile
+    openvpn3 session-start --config $CONFIG_PATH
     update_state
 }
 export -f connect
@@ -91,6 +106,7 @@ function update_state() {
 export -f update_state
 export PIPE
 export RUNNING_DIR
+export CONFIG_PATH
 
 # create the notification icon
 yad --notification                  \
@@ -98,7 +114,7 @@ yad --notification                  \
     --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
     --text="openvpn3-applet"        \
     --command="bash -c 'on_click'"   \
-    --menu="List sessions!$RUNNING_DIR/list-sessions.sh|Connect!bash -c 'connect'|Disconnect!bash -c 'disconnect'|Exit!exit 0" <&3 & notifpid=$!
+    --menu="Connect!bash -c 'connect'|Disconnect!bash -c 'disconnect'|Exit!exit 0" <&3 & notifpid=$!
     
 while true
 do 
