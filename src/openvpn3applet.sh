@@ -15,7 +15,8 @@ function displayHelp()
    echo
 }
 
-CONFIG_FILE_PATH=~/.openvpn-applet/config
+CONFIG_DIR=~/.openvpn-applet
+CONFIG_FILE_PATH=$CONFIG_DIR/config
 
 sleepTime=10
 
@@ -37,6 +38,8 @@ fi
 if [[ -z $CONFIG_PATH ]]
 then
 	configfile=$(yad --file)
+	# create directory in case it does not exist
+	mkdir -p $CONFIG_DIR
 	echo "CONFIG_PATH="$configfile > $CONFIG_FILE_PATH
 	CONFIG_PATH=$configfile
 fi
