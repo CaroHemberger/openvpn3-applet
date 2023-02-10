@@ -70,19 +70,23 @@ function on_click() {
 export -f on_click
 
 function disconnect() {
+	echo "disconnecting.."
 	exec 3<> $PIPE
 	echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
     sessionPath=$(openvpn3 sessions-list | grep Path | awk ' { print $2 } ')
     openvpn3 session-manage --disconnect --session-path $sessionPath
     update_state
+    echo "disconnected."
 }
 export -f disconnect
 
 function connect() {
+	echo "connecting..."
 	exec 3<> $PIPE
 	echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
     openvpn3 session-start --config $CONFIG_PATH
     update_state
+    echo "connected."
 }
 export -f connect
 
@@ -95,33 +99,35 @@ function update_state() {
 		then
 			echo "no sessions"
 			echo "icon:$RUNNING_DIR/icons/circle-red.png" >&3
+			echo "menu:Connect!bash -c 'connect'|Exit!exit 0" >&3
 			echo "tooltip:Not connected" >&3
 		elif [[ $line = *"Client connected" ]]
 		then
 			echo "sessions found!"
 			echo "icon:$RUNNING_DIR/icons/circle-green.png" >&3
+			echo "menu:Disconnect!bash -c 'disconnect'|Exit!exit 0" >&3
 			echo "tooltip:Connected to VPN" >&3
 		fi
 	done <<< "$output"
 	
 }
 
+
 export -f update_state
 export PIPE
 export RUNNING_DIR
 export CONFIG_PATH
+
 
 # create the notification icon
 yad --notification                  \
     --listen                        \
     --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
     --text="openvpn3-applet"        \
-    --command="bash -c 'on_click'"   \
-    --menu="Connect!bash -c 'connect'|Disconnect!bash -c 'disconnect'|Exit!exit 0" <&3 & notifpid=$!
+    --command="bash -c 'on_click'"   <&3 &
     
 while true
 do 
-echo "notify: " $notifpid
     update_state
     sleep $sleepTime
 done
