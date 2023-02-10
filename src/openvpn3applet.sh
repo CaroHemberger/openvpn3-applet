@@ -62,6 +62,7 @@ function on_exit() {
     rm -f $PIPE
 }
 trap on_exit EXIT
+export -f on_exit
 
 # add handler for tray icon left click
 function on_click() {
@@ -99,13 +100,13 @@ function update_state() {
 		then
 			echo "no sessions"
 			echo "icon:$RUNNING_DIR/icons/circle-red.png" >&3
-			echo "menu:Connect!bash -c 'connect'|Exit!exit 0" >&3
+			echo "menu:Connect!bash -c 'connect'|Exit!bash -c 'on_exit'" >&3
 			echo "tooltip:Not connected" >&3
 		elif [[ $line = *"Client connected" ]]
 		then
 			echo "sessions found!"
 			echo "icon:$RUNNING_DIR/icons/circle-green.png" >&3
-			echo "menu:Disconnect!bash -c 'disconnect'|Exit!exit 0" >&3
+			echo "menu:Disconnect!bash -c 'disconnect'|Exit!bash -c 'on_exit'" >&3
 			echo "tooltip:Connected to VPN" >&3
 		fi
 	done <<< "$output"
@@ -124,10 +125,15 @@ yad --notification                  \
     --listen                        \
     --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
     --text="openvpn3-applet"        \
-    --command="bash -c 'on_click'"   <&3 &
+    --command="bash -c 'on_click'"   <&3 & notifpid=$!
     
 while true
 do 
+	if ! ps -p $notifpid > /dev/null
+	then
+		# exit if yad process has been terminated
+		exit
+	fi
     update_state
     sleep $sleepTime
 done
