@@ -106,15 +106,23 @@ function update_state() {
 		then
 			echo "sessions found!"
 			echo "icon:$RUNNING_DIR/icons/circle-green.png" >&3
-			echo "menu:Disconnect!bash -c 'disconnect'|Exit!bash -c 'on_exit'" >&3
+			echo "menu:Disconnect!bash -c 'disconnect'|Stats!bash -c 'display_session_stats'|Exit!bash -c 'on_exit'" >&3
 			echo "tooltip:Connected to VPN" >&3
 		fi
 	done <<< "$output"
 	
 }
-
-
 export -f update_state
+
+function display_session_stats() {
+	sessionPath=$(openvpn3 sessions-list | grep Path | awk ' { print $2 } ')
+	output=$(openvpn3 session-stats -o $sessionPath)
+	yad --width=500 --title="session-stats" --text="$output" --center --button="Close"
+}
+export -f display_session_stats
+
+
+
 export PIPE
 export RUNNING_DIR
 export CONFIG_PATH
