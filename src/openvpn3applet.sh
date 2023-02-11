@@ -5,14 +5,14 @@ CONFIG_FILE_PATH=$CONFIG_DIR/config
 sleepTime=10
 
 ################################################################################
-# Help                                                                         #
+# Functions                                                                    #
 ################################################################################
 function displayHelp()
 {
    # Display Help
    echo "Helper to display openvpn3 connection state."
    echo
-   echo "Syntax: ./openvpn3applet.sh [-g|h|v|V]"
+   echo "Syntax: ./openvpn3applet.sh [-h|-s n]"
    echo "options:"
    echo "-s [seconds]     Time between state refresh in seconds, default: 10"
    echo "-h     Print this Help."
@@ -28,40 +28,10 @@ function selectAndSaveConfigfile() {
 }
 export -f selectAndSaveConfigfile
 
-while getopts s:h flag
-do
-    case "${flag}" in
-        s) sleepTime=${OPTARG};;
-        h) displayHelp
-		   exit;;
-    esac
-done
-
-# check if there is a saved vpn config file, if not, ask for one and save it
-if [ -f "$CONFIG_FILE_PATH" ]
-then
-	source $CONFIG_FILE_PATH
-fi
-
-if [[ -z $OPENVPN_CONFIG_PATH ]]
-then
-	selectAndSaveConfigfile
-fi
-
-
-# create a FIFO file, used to manage the I/O redirection from shell
-PIPE=$(mktemp -u --tmpdir ${0##*/}.XXXXXXXX)
-mkfifo $PIPE
-
-# attach a file descriptor to the file
-exec 3<> $PIPE
-
-RUNNING_DIR=${BASH_SOURCE%/*}
-
 # add handler to manage process shutdown
 function on_exit() {
 	exec 3<> $PIPE
-	echo $(date) " | " "quitting.."
+	echo $(date) " | " "Quitting.."
     echo "quit" >&3
     rm -f $PIPE
 }
@@ -75,23 +45,22 @@ function on_click() {
 export -f on_click
 
 function disconnect() {
-	echo $(date) " | " "disconnecting.."
+	echo $(date) " | " "Disconnecting.."
 	exec 3<> $PIPE
 	echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
     sessionPath=$(openvpn3 sessions-list | grep Path | awk ' { print $2 } ')
     openvpn3 session-manage --disconnect --session-path $sessionPath
     update_state
-    echo $(date) " | " "disconnected."
+    echo $(date) " | " "Disconnected."
 }
 export -f disconnect
 
 function connect() {
-	echo $(date) " | " "connecting..."
+	echo $(date) " | " "Connecting..."
 	exec 3<> $PIPE
 	echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
     openvpn3 session-start --config $OPENVPN_CONFIG_PATH
     update_state
-    echo $(date) " | " "connected."
 }
 export -f connect
 
@@ -146,6 +115,44 @@ function display_session_stats() {
 }
 export -f display_session_stats
 
+################################################################################
+# End of functions (make sure to export them)                                  #
+################################################################################
+
+
+################################################################################
+# Start of script                                                              #
+################################################################################
+while getopts s:h flag
+do
+    case "${flag}" in
+        s) sleepTime=${OPTARG};;
+        h) displayHelp
+		   exit;;
+    esac
+done
+
+# check if there is a saved vpn config file, if not, ask for one and save it
+if [ -f "$CONFIG_FILE_PATH" ]
+then
+	source $CONFIG_FILE_PATH
+fi
+
+if [[ -z $OPENVPN_CONFIG_PATH ]]
+then
+	selectAndSaveConfigfile
+fi
+
+
+# create a FIFO file, used to manage the I/O redirection from shell
+PIPE=$(mktemp -u --tmpdir ${0##*/}.XXXXXXXX)
+mkfifo $PIPE
+
+# attach a file descriptor to the file
+exec 3<> $PIPE
+
+RUNNING_DIR=${BASH_SOURCE%/*}
+
 export PIPE
 export RUNNING_DIR
 export OPENVPN_CONFIG_PATH
@@ -155,12 +162,9 @@ export CONFIG_FILE_PATH
 # create the notification icon
 yad --notification                  \
     --listen                        \
-    --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
+    --image="$RUNNING_DIR/icons/circle-red.png"  \
     --text="openvpn3-applet"        \
     --command="bash -c 'on_click'"   <&3 & notifpid=$!
-    
-echo $(date) " | " "created"
-
     
 while true
 do 
