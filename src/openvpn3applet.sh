@@ -61,7 +61,7 @@ RUNNING_DIR=${BASH_SOURCE%/*}
 # add handler to manage process shutdown
 function on_exit() {
 	exec 3<> $PIPE
-	echo "quitting.."
+	echo $(date) " | " "quitting.."
     echo "quit" >&3
     rm -f $PIPE
 }
@@ -75,23 +75,23 @@ function on_click() {
 export -f on_click
 
 function disconnect() {
-	echo "disconnecting.."
+	echo $(date) " | " "disconnecting.."
 	exec 3<> $PIPE
 	echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
     sessionPath=$(openvpn3 sessions-list | grep Path | awk ' { print $2 } ')
     openvpn3 session-manage --disconnect --session-path $sessionPath
     update_state
-    echo "disconnected."
+    echo $(date) " | " "disconnected."
 }
 export -f disconnect
 
 function connect() {
-	echo "connecting..."
+	echo $(date) " | " "connecting..."
 	exec 3<> $PIPE
 	echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
     openvpn3 session-start --config $OPENVPN_CONFIG_PATH
     update_state
-    echo "connected."
+    echo $(date) " | " "connected."
 }
 export -f connect
 
@@ -100,28 +100,42 @@ function update_state() {
 	defaultMenuEntries="|Select config!bash -c 'selectAndSaveConfigfile'|Exit!bash -c 'on_exit"
 	statEntry="|Stats!bash -c 'display_session_stats'"
 	
+	detectedState=false
 	output=$(openvpn3 sessions-list)
 	while IFS= read -r line; do
-		if [[ $line = "No sessions available" ]]
+		if [[ $line = "No sessions available" || $line = *"Client authentication failed: Authentication failed" ]]
 		then
-			echo "no sessions"
+			echo $(date) " | " "Not connected"
 			echo "icon:$RUNNING_DIR/icons/circle-red.png" >&3
 			echo "menu:Connect!bash -c 'connect'" $defaultMenuEntries >&3
 			echo "tooltip:Not connected" >&3
+			detectedState=true
 		elif [[ $line = *"Client connected" ]]
 		then
-			echo "sessions found!"
+			echo $(date) " | " "Session found!"
 			echo "icon:$RUNNING_DIR/icons/circle-green.png" >&3
 			echo "menu:Disconnect!bash -c 'disconnect''" $statEntry $defaultMenuEntries >&3
 			echo "tooltip:Connected to VPN" >&3
+			detectedState=true
 		elif [[ $line = *"Web authentication required to connect" ]]
 		then
-			echo "waiting for web authentication"
+			echo $(date) " | " "Waiting for web authentication"
 			echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
 			echo "menu:Disconnect!bash -c 'disconnect'" $statEntry $defaultMenuEntries >&3
 			echo "tooltip:Waiting for Web authentiction (check webbrowser)" >&3
+			detectedState=true
 		fi
 	done <<< "$output"
+	
+	echo "detectedStae: " $detectedState
+	# failsafe for unknown states
+	if [[ $detectedState = false ]]
+	then
+		echo $(date) " | " "Unknown state"
+		echo "icon:$RUNNING_DIR/icons/circle-red.png" >&3
+		echo "menu:Connect!bash -c 'connect'" $defaultMenuEntries >&3
+		echo "tooltip:Not connected" >&3
+	fi
 	
 }
 export -f update_state
@@ -145,6 +159,9 @@ yad --notification                  \
     --image="${BASH_SOURCE%/*}/icons/circle-red.png"  \
     --text="openvpn3-applet"        \
     --command="bash -c 'on_click'"   <&3 & notifpid=$!
+    
+echo $(date) " | " "created"
+
     
 while true
 do 
