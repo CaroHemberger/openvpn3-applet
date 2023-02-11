@@ -15,6 +15,15 @@ function displayHelp()
    echo
 }
 
+function selectAndSaveConfigfile() {
+	configfile=$(yad --width="500" --center --title="Select config file" --text="\nPlease select your openvpn3 config file:\n" --file --file-filter="*.ovpn")
+	# create directory in case it does not exist
+	mkdir -p $CONFIG_DIR
+	echo "CONFIG_PATH="$configfile > $CONFIG_FILE_PATH
+	CONFIG_PATH=$configfile
+}
+export -f selectAndSaveConfigfile
+
 CONFIG_DIR=~/.openvpn-applet
 CONFIG_FILE_PATH=$CONFIG_DIR/config
 
@@ -37,11 +46,7 @@ fi
 
 if [[ -z $CONFIG_PATH ]]
 then
-	configfile=$(yad --file)
-	# create directory in case it does not exist
-	mkdir -p $CONFIG_DIR
-	echo "CONFIG_PATH="$configfile > $CONFIG_FILE_PATH
-	CONFIG_PATH=$configfile
+	selectAndSaveConfigfile
 fi
 
 
@@ -108,6 +113,12 @@ function update_state() {
 			echo "icon:$RUNNING_DIR/icons/circle-green.png" >&3
 			echo "menu:Disconnect!bash -c 'disconnect'|Stats!bash -c 'display_session_stats'|Exit!bash -c 'on_exit'" >&3
 			echo "tooltip:Connected to VPN" >&3
+		elif [[ $line = *"Web authentication required to connect" ]]
+		then
+			echo "waiting for web authentication"
+			echo "icon:$RUNNING_DIR/icons/circle-lightblue.png" >&3
+			echo "menu:Disconnect!bash -c 'disconnect'|Stats!bash -c 'display_session_stats'|Exit!bash -c 'on_exit'" >&3
+			echo "tooltip:Waiting for Web authentiction (check webbrowser)" >&3
 		fi
 	done <<< "$output"
 	
@@ -127,7 +138,7 @@ export PIPE
 export RUNNING_DIR
 export CONFIG_PATH
 
-
+echo "und looos"
 # create the notification icon
 yad --notification                  \
     --listen                        \
@@ -139,10 +150,13 @@ while true
 do 
 	if ! ps -p $notifpid > /dev/null
 	then
+		echo "exiting.."
 		# exit if yad process has been terminated
 		exit
 	fi
+	echo "before update"
     update_state
+    echo "after update"
     sleep $sleepTime
 done
     
