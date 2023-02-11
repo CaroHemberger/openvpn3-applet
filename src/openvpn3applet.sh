@@ -127,7 +127,6 @@ function update_state() {
 		fi
 	done <<< "$output"
 	
-	echo "detectedStae: " $detectedState
 	# failsafe for unknown states
 	if [[ $detectedState = false ]]
 	then
