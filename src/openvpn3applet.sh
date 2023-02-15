@@ -77,7 +77,7 @@ export -f connect
 
 function update_state() {
 	exec 3<> $PIPE
-	defaultMenuEntries="|Select config!bash -c 'select_and_save_configfile'|Exit!bash -c 'on_exit"
+	defaultMenuEntries="|Select config!bash -c 'select_and_save_configfile'|Exit!bash -c 'on_exit'"
 	statEntry="|Stats!bash -c 'display_session_stats'"
 	
 	detectedState=false
