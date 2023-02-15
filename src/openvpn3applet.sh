@@ -1,13 +1,15 @@
 #!/bin/bash
 
 CONFIG_DIR=~/.openvpn-applet
+export CONFIG_DIR
 CONFIG_FILE_PATH=$CONFIG_DIR/config
+export CONFIG_FILE_PATH
 sleepTime=10
 
 ################################################################################
 # Functions                                                                    #
 ################################################################################
-function displayHelp()
+function display_help()
 {
    # Display Help
    echo "Helper to display openvpn3 connection state."
@@ -19,14 +21,25 @@ function displayHelp()
    echo
 }
 
-function selectAndSaveConfigfile() {
-	configfile=$(yad --width="500" --center --title="Select config file" --text="\nPlease select your openvpn3 config file:\n" --file --file-filter="*.ovpn")
+function set_sleep_time() {
+	if ! [[ $1 =~ $re ]]
+	then
+	   echo $(date) " | " "Invalid number for sleepTime, using default (10s)"
+	else
+		sleepTime=$1
+	fi
+}
+
+function select_and_save_configfile() {
+	configfile=$(yad --width="500" --center --title="Select config file" --text="\nPlease select your openvpn3 config file:\n" --button="OK" --file --file-filter="*.ovpn")
 	# create directory in case it does not exist
 	mkdir -p $CONFIG_DIR
 	echo "OPENVPN_CONFIG_PATH="$configfile > $CONFIG_FILE_PATH
 	OPENVPN_CONFIG_PATH=$configfile
+	export OPENVPN_CONFIG_PATH
+	echo $(date) " | " "Selected configfile: " $OPENVPN_CONFIG_PATH
 }
-export -f selectAndSaveConfigfile
+export -f select_and_save_configfile
 
 # add handler to manage process shutdown
 function on_exit() {
@@ -35,7 +48,6 @@ function on_exit() {
     echo "quit" >&3
     rm -f $PIPE
 }
-trap on_exit EXIT
 export -f on_exit
 
 # add handler for tray icon left click
@@ -66,7 +78,7 @@ export -f connect
 
 function update_state() {
 	exec 3<> $PIPE
-	defaultMenuEntries="|Select config!bash -c 'selectAndSaveConfigfile'|Exit!bash -c 'on_exit"
+	defaultMenuEntries="|Select config!bash -c 'select_and_save_configfile'|Exit!bash -c 'on_exit"
 	statEntry="|Stats!bash -c 'display_session_stats'"
 	
 	detectedState=false
@@ -83,7 +95,7 @@ function update_state() {
 		then
 			echo $(date) " | " "Session found!"
 			echo "icon:$RUNNING_DIR/icons/circle-green.png" >&3
-			echo "menu:Disconnect!bash -c 'disconnect''" $statEntry $defaultMenuEntries >&3
+			echo "menu:Disconnect!bash -c 'disconnect'" $statEntry $defaultMenuEntries >&3
 			echo "tooltip:Connected to VPN" >&3
 			detectedState=true
 		elif [[ $line = *"Web authentication required to connect" ]]
@@ -126,8 +138,16 @@ export -f display_session_stats
 while getopts s:h flag
 do
     case "${flag}" in
-        s) sleepTime=${OPTARG};;
-        h) displayHelp
+        s)  echo "mklsdljf" ${OPTARG}
+			if ! [[ ${OPTARG} =~ ^[0-9]+$ ]]
+			then
+			   echo $(date) " | " "Invalid number for sleepTime, using default ("$sleepTime"s)"
+			else
+				sleepTime=${OPTARG}
+				echo $(date) " | " "Using sleepTime:" $sleepTime
+			fi
+			;;
+        h) display_help
 		   exit;;
     esac
 done
@@ -138,26 +158,25 @@ then
 	source $CONFIG_FILE_PATH
 fi
 
-if [[ -z $OPENVPN_CONFIG_PATH ]]
+if [[ -z $OPENVPN_CONFIG_PATH || $OPENVPN_CONFIG_PATH = "" ]]
 then
-	selectAndSaveConfigfile
+	select_and_save_configfile
 fi
 
 
 # create a FIFO file, used to manage the I/O redirection from shell
 PIPE=$(mktemp -u --tmpdir ${0##*/}.XXXXXXXX)
+export PIPE
 mkfifo $PIPE
 
 # attach a file descriptor to the file
 exec 3<> $PIPE
 
-RUNNING_DIR=${BASH_SOURCE%/*}
+trap on_exit EXIT
 
-export PIPE
+RUNNING_DIR=${BASH_SOURCE%/*}
 export RUNNING_DIR
-export OPENVPN_CONFIG_PATH
-export CONFIG_DIR
-export CONFIG_FILE_PATH
+
 
 # create the notification icon
 yad --notification                  \
