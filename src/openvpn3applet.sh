@@ -36,7 +36,6 @@ function select_and_save_configfile() {
 	mkdir -p $CONFIG_DIR
 	echo "OPENVPN_CONFIG_PATH="$configfile > $CONFIG_FILE_PATH
 	OPENVPN_CONFIG_PATH=$configfile
-	export OPENVPN_CONFIG_PATH
 	echo $(date) " | " "Selected configfile: " $OPENVPN_CONFIG_PATH
 }
 export -f select_and_save_configfile
@@ -162,7 +161,7 @@ if [[ -z $OPENVPN_CONFIG_PATH || $OPENVPN_CONFIG_PATH = "" ]]
 then
 	select_and_save_configfile
 fi
-
+export OPENVPN_CONFIG_PATH
 
 # create a FIFO file, used to manage the I/O redirection from shell
 PIPE=$(mktemp -u --tmpdir ${0##*/}.XXXXXXXX)
